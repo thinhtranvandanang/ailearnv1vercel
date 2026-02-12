@@ -9,14 +9,13 @@ from app.db import base  # noqa: F401
 
 # Engine setup
 db_url = settings.DATABASE_URL
-print(f"DEBUG: Initial DATABASE_URL scheme: {db_url.split('://')[0] if '://' in db_url else 'None'}")
-
 if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
-elif db_url.startswith("postgresql+psycopg://"):
-    db_url = db_url.replace("postgresql+psycopg://", "postgresql://", 1)
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_url.startswith("postgresql://") and "+psycopg2" not in db_url:
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+elif "postgresql+psycopg://" in db_url:
+    db_url = db_url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
 
-print(f"DEBUG: Final DATABASE_URL scheme: {db_url.split('://')[0] if '://' in db_url else 'None'}")
 engine = create_engine(db_url, pool_pre_ping=True)
 
 # Session factory
