@@ -22,27 +22,36 @@ class Settings(BaseSettings):
         return v
 
     # CORS
-    BACKEND_CORS_ORIGINS: Any = []
+    # Đặt mặc định là chuỗi rỗng để Pydantic V1 không tự động ép kiểu JSON khi load env
+    BACKEND_CORS_ORIGINS: Any = ""
     ALLOWED_ORIGINS: Optional[str] = None
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     @classmethod
     def assemble_cors_origins(cls, v: Any) -> List[str]:
-        # Handle None or empty string
         if v is None or v == "" or v == "[]" or v == '""':
             return []
-        if isinstance(v, str) and not v.startswith("["):
-            # Tách chuỗi bằng dấu phẩy và loại bỏ khoảng trắng + dấu / ở cuối
+        if isinstance(v, str):
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    import json
+                    return json.loads(v)
+                except:
+                    pass
+            # Tách chuỗi bằng dấu phẩy
             return [i.strip().rstrip("/") for i in v.split(",") if i.strip()]
-        elif isinstance(v, list):
-            return [str(i).strip().rstrip("/") for i in v]
-        return []
+        return v
     
     @root_validator
     def sync_cors_origins(cls, values):
         """Nếu có ALLOWED_ORIGINS trong .env, nạp vào BACKEND_CORS_ORIGINS."""
         allowed_origins = values.get("ALLOWED_ORIGINS")
         backend_cors_origins = values.get("BACKEND_CORS_ORIGINS")
+        # Ensure backend_cors_origins is a list (validator might have missed if not in env)
+        if not isinstance(backend_cors_origins, list):
+             backend_cors_origins = cls.assemble_cors_origins(backend_cors_origins)
+             values["BACKEND_CORS_ORIGINS"] = backend_cors_origins
+
         if allowed_origins and not backend_cors_origins:
             origins = [i.strip().rstrip("/") for i in allowed_origins.split(",") if i.strip()]
             values["BACKEND_CORS_ORIGINS"] = origins
@@ -57,7 +66,22 @@ class Settings(BaseSettings):
     # File Storage
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
-    ALLOWED_FILE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "pdf"]
+    ALLOWED_FILE_EXTENSIONS: Any = "jpg,jpeg,png,pdf"
+
+    @validator("ALLOWED_FILE_EXTENSIONS", pre=True)
+    @classmethod
+    def assemble_allowed_extensions(cls, v: Any) -> List[str]:
+        if v is None or v == "":
+            return ["jpg", "jpeg", "png", "pdf"]
+        if isinstance(v, str):
+            if v.startswith("["):
+                try:
+                    import json
+                    return json.loads(v)
+                except:
+                    pass
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     class Config:
         case_sensitive = True
