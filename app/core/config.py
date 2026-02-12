@@ -25,40 +25,44 @@ class Settings(BaseSettings):
         return v
 
     # CORS
-    # Đổi tên để Pydantic không tự động load từ env qua bộ parse JSON mặc định của nó
+    # Đổi tên field để Pydantic V1 không tự động load từ env qua bộ parse JSON mặc định
     BACKEND_CORS_ORIGINS: List[str] = []
     ALLOWED_ORIGINS: Optional[str] = None
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True, always=True)
-    @classmethod
-    def assemble_cors_origins(cls, v: Any) -> List[str]:
-        # Ưu tiên đọc trực tiếp từ os.environ để tránh bộ parse JSON của Pydantic V1
+    @root_validator(pre=True)
+    def manual_load_env_vars(cls, values):
         import os
-        raw_val = os.environ.get("BACKEND_CORS_ORIGINS")
+        import json
         
-        if raw_val is None:
-            # Nếu không có trong env, dùng giá trị được pass vào (nếu có)
-            if isinstance(v, list): return v
-            raw_val = v
-
-        if not raw_val or raw_val == '""' or raw_val == "[]":
-            return []
-            
-        if isinstance(raw_val, str):
-            if raw_val.startswith("[") and raw_val.endswith("]"):
+        # Manual load BACKEND_CORS_ORIGINS
+        raw_cors = os.environ.get("BACKEND_CORS_ORIGINS")
+        if raw_cors:
+            if raw_cors.startswith("["):
                 try:
-                    import json
-                    return json.loads(raw_val)
+                    values["BACKEND_CORS_ORIGINS"] = json.loads(raw_cors)
                 except:
-                    pass
-            return [i.strip().rstrip("/") for i in raw_val.split(",") if i.strip()]
-        return raw_val if isinstance(raw_val, list) else []
+                    values["BACKEND_CORS_ORIGINS"] = [i.strip() for i in raw_cors.split(",") if i.strip()]
+            else:
+                 values["BACKEND_CORS_ORIGINS"] = [i.strip() for i in raw_cors.split(",") if i.strip()]
+        
+        # Manual load ALLOWED_FILE_EXTENSIONS
+        raw_ext = os.environ.get("ALLOWED_FILE_EXTENSIONS")
+        if raw_ext:
+            if raw_ext.startswith("["):
+                try:
+                    values["ALLOWED_FILE_EXTENSIONS"] = json.loads(raw_ext)
+                except:
+                    values["ALLOWED_FILE_EXTENSIONS"] = [i.strip() for i in raw_ext.split(",") if i.strip()]
+            else:
+                values["ALLOWED_FILE_EXTENSIONS"] = [i.strip() for i in raw_ext.split(",") if i.strip()]
+
+        return values
     
     @root_validator
-    def sync_cors_origins(cls, values):
+    def sync_cors_origins_logic(cls, values):
         """Nếu có ALLOWED_ORIGINS trong .env, nạp vào BACKEND_CORS_ORIGINS."""
         allowed_origins = values.get("ALLOWED_ORIGINS")
-        backend_cors_origins = values.get("BACKEND_CORS_ORIGINS")
+        backend_cors_origins = values.get("BACKEND_CORS_ORIGINS") or []
         
         if allowed_origins and not backend_cors_origins:
             origins = [i.strip().rstrip("/") for i in allowed_origins.split(",") if i.strip()]
@@ -75,28 +79,6 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
     ALLOWED_FILE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "pdf"]
-
-    @validator("ALLOWED_FILE_EXTENSIONS", pre=True, always=True)
-    @classmethod
-    def assemble_allowed_extensions(cls, v: Any) -> List[str]:
-        import os
-        raw_val = os.environ.get("ALLOWED_FILE_EXTENSIONS")
-        if raw_val is None:
-            if isinstance(v, list): return v
-            raw_val = v
-            
-        if not raw_val:
-            return ["jpg", "jpeg", "png", "pdf"]
-            
-        if isinstance(raw_val, str):
-            if raw_val.startswith("["):
-                try:
-                    import json
-                    return json.loads(raw_val)
-                except:
-                    pass
-            return [i.strip() for i in raw_val.split(",") if i.strip()]
-        return raw_val if isinstance(raw_val, list) else ["jpg", "jpeg", "png", "pdf"]
 
     class Config:
         case_sensitive = True
