@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/edunexia"
 
+    @validator("DATABASE_URL", pre=True)
+    @classmethod
+    def assemble_db_url(cls, v: str) -> str:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = []
     ALLOWED_ORIGINS: Optional[str] = None
