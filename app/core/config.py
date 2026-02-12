@@ -1,5 +1,5 @@
 from typing import List, Union, Optional, Any
-from pydantic import AnyHttpUrl, validator, root_validator, BaseSettings
+from pydantic import AnyHttpUrl, validator, root_validator, BaseSettings, Field
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "EduNexia API"
@@ -25,8 +25,8 @@ class Settings(BaseSettings):
         return v
 
     # CORS
-    # Đổi tên field để Pydantic V1 không tự động load từ env qua bộ parse JSON mặc định
-    BACKEND_CORS_ORIGINS: List[str] = []
+    # Đặt env='NOT_EXISTENT' để Pydantic V1 không tự động load từ env qua bộ parse JSON mặc định
+    BACKEND_CORS_ORIGINS: List[str] = Field([], env="DUMMY_VAR_CORS")
     ALLOWED_ORIGINS: Optional[str] = None
 
     @root_validator(pre=True)
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     # File Storage
     UPLOAD_DIR: str = "uploads"
     MAX_FILE_SIZE_MB: int = 10
-    ALLOWED_FILE_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "pdf"]
+    ALLOWED_FILE_EXTENSIONS: List[str] = Field(["jpg", "jpeg", "png", "pdf"], env="DUMMY_VAR_EXT")
 
     class Config:
         case_sensitive = True
