@@ -62,7 +62,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path={ROUTES.PUBLIC.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.PUBLIC.REGISTER} element={<RegisterPage />} />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      <Route path={ROUTES.PUBLIC.CALLBACK} element={<AuthCallbackPage />} />
 
       <Route path={ROUTES.PROTECTED.DASHBOARD} element={<ProtectedRoute><MainLayout><DashboardPage /></MainLayout></ProtectedRoute>} />
       <Route path={ROUTES.PROTECTED.PRACTICE_SETUP} element={<ProtectedRoute><MainLayout><CreateTestPage /></MainLayout></ProtectedRoute>} />

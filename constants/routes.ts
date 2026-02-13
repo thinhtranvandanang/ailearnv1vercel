@@ -7,6 +7,7 @@ export const ROUTES = {
     HOME: '/',
     LOGIN: '/login',
     REGISTER: '/register',
+    CALLBACK: '/auth/callback',
   },
   PROTECTED: {
     DASHBOARD: '/dashboard',
