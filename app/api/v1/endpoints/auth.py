@@ -37,17 +37,21 @@ def get_me(current_user: User = Depends(deps.get_current_user)):
 
 def get_dynamic_config(request: Request):
     """Tính toán URL linh hoạt dựa trên request thực tế để hỗ trợ Production/Local."""
-    # Ưu tiên x-forwarded-proto cho môi trường có proxy như Vercel
-    is_localhost = "localhost" in request.url.netloc
+    # Môi trường Vercel/Proxy cung cấp x-forwarded-* headers
+    forwarded_host = request.headers.get("x-forwarded-host")
+    forwarded_proto = request.headers.get("x-forwarded-proto")
     
-    # Ép buộc HTTPS trên Production (không phải localhost) để tránh mất token do redirect HTTP -> HTTPS
+    current_host = forwarded_host or request.url.netloc
+    is_localhost = "localhost" in current_host
+    
+    # Ép buộc HTTPS trên Production (không phải localhost)
     if is_localhost:
         protocol = request.url.scheme
     else:
-        # Vercel luôn hỗ trợ HTTPS, x-forwarded-proto là đáng tin cậy nhất
-        protocol = request.headers.get("x-forwarded-proto") or "https"
+        # Vercel luôn có x-forwarded-proto=https. Nếu không có, mặc định là https.
+        protocol = forwarded_proto or "https"
     
-    base_url = f"{protocol}://{request.url.netloc}"
+    base_url = f"{protocol}://{current_host}"
     
     # 1. Frontend URL
     frontend_url = settings.FRONTEND_URL.rstrip("/")
@@ -85,10 +89,10 @@ async def google_callback(request: Request, code: str, error: str | None = None)
     
     if error:
         logger.error(f"Google OAuth Provider Error: {error}")
-        return RedirectResponse(f"{frontend_url}/login?error=access_denied&details={error}")
+        return RedirectResponse(f"{frontend_url}/auth/callback?error=access_denied&details={error}")
 
     if not code:
-        return RedirectResponse(f"{frontend_url}/login?error=missing_code")
+        return RedirectResponse(f"{frontend_url}/auth/callback?error=missing_code")
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
@@ -107,7 +111,7 @@ async def google_callback(request: Request, code: str, error: str | None = None)
             if token_resp.status_code != 200:
                 err_text = token_resp.text
                 logger.error(f"Google Token Exchange Failed (Redirect URI used: {redirect_uri}): {err_text}")
-                return RedirectResponse(f"{frontend_url}/login?error=token_failed&status={token_resp.status_code}")
+                return RedirectResponse(f"{frontend_url}/auth/callback?error=token_failed&status={token_resp.status_code}")
             
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
@@ -120,7 +124,7 @@ async def google_callback(request: Request, code: str, error: str | None = None)
             
             if userinfo_resp.status_code != 200:
                 logger.error(f"Google UserInfo Fetch Failed: {userinfo_resp.text}")
-                return RedirectResponse(f"{frontend_url}/login?error=user_info_failed")
+                return RedirectResponse(f"{frontend_url}/auth/callback?error=user_info_failed")
                 
             profile = userinfo_resp.json()
             email = (profile.get("email") or "").strip().lower()
@@ -129,7 +133,7 @@ async def google_callback(request: Request, code: str, error: str | None = None)
 
             if not email:
                 logger.error("Google profile missing email")
-                return RedirectResponse(f"{frontend_url}/login?error=email_missing")
+                return RedirectResponse(f"{frontend_url}/auth/callback?error=email_missing")
 
             # 3. Tạo một Database Session mới ngay sau khi thực hiện các lệnh await
             db = SessionLocal()
@@ -143,14 +147,14 @@ async def google_callback(request: Request, code: str, error: str | None = None)
                 jwt_token = create_access_token(subject=user.id)
                 logger.info(f"Google login successful for: {email}")
                 # Redirect về Frontend kèm Token JWT
-                return RedirectResponse(f"{frontend_url}/login?token={jwt_token}")
+                return RedirectResponse(f"{frontend_url}/auth/callback?token={jwt_token}")
             except Exception as db_e:
                 logger.exception(f"Database error during Google callback for {email}")
                 db.rollback()
-                return RedirectResponse(f"{frontend_url}/login?error=callback_failed&details=db_error")
+                return RedirectResponse(f"{frontend_url}/auth/callback?error=callback_failed&details=db_error")
             finally:
                 db.close()
 
         except Exception as e:
             logger.exception("Unexpected exception in Google callback flow")
-            return RedirectResponse(f"{frontend_url}/login?error=callback_failed&details=exception")
+            return RedirectResponse(f"{frontend_url}/auth/callback?error=callback_failed&details=exception")

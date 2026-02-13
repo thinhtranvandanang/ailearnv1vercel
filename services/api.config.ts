@@ -25,11 +25,17 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Tránh redirect loop: Chỉ chuyển hướng nếu lỗi 401 và không phải đang ở trang login
-    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+    // Tránh redirect loop: Chỉ chuyển hướng nếu lỗi 401 
+    // Không redirect nếu đang ở trang login hoặc trang callback xác thực
+    const isAuthPage = window.location.pathname.includes('/login') ||
+      window.location.pathname.includes('/auth/callback');
+
+    if (error.response?.status === 401 && !isAuthPage) {
       localStorage.removeItem('edunexia_token');
       localStorage.removeItem('edunexia_user');
-      window.location.href = '/login';
+
+      const details = error.response?.data?.detail || 'session_expired';
+      window.location.href = `/login?error=unauthorized&details=${encodeURIComponent(details)}`;
     }
     return Promise.reject(error.response?.data || error);
   }

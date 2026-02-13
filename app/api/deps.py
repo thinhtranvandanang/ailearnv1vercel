@@ -26,14 +26,22 @@ def get_current_user(
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
+            import logging
+            logging.error("JWT Payload missing 'sub' claim")
             raise AuthException()
-    except JWTError:
+    except JWTError as e:
+        import logging
+        logging.error(f"JWT Decode Error: {str(e)}")
         raise AuthException()
     
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
+        import logging
+        logging.error(f"User not found for ID: {user_id}")
         raise AuthException("User not found")
     if not user.is_active:
+        import logging
+        logging.error(f"User account is inactive for ID: {user_id}")
         raise AuthException("User account is inactive")
     return user
 
