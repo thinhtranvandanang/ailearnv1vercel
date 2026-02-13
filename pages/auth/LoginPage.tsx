@@ -38,16 +38,17 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const googleToken = params.get('token');
-    
+
     if (googleToken) {
       setIsVerifyingGoogle(true);
-      setTokenManually(googleToken);
+      // setTokenManually is no longer strictly needed here as AuthContext handles it,
+      // but we keep the visual feedback and navigate to dashboard.
       const timer = setTimeout(() => {
         navigate(ROUTES.PROTECTED.DASHBOARD, { replace: true });
-      }, 1000);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [location, navigate, setTokenManually]);
+  }, [location, navigate]);
 
   const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -95,21 +96,21 @@ export const LoginPage: React.FC = () => {
 
               <form onSubmit={handleLoginSubmit} className="space-y-5">
                 <div className="space-y-4">
-                  <Input 
-                    name="username" 
-                    label="Tên đăng nhập" 
-                    placeholder="Nhập username" 
-                    required 
-                    className="rounded-2xl border-slate-200 focus:border-indigo-500 h-13 transition-all" 
+                  <Input
+                    name="username"
+                    label="Tên đăng nhập"
+                    placeholder="Nhập username"
+                    required
+                    className="rounded-2xl border-slate-200 focus:border-indigo-500 h-13 transition-all"
                   />
                   <div className="relative">
-                    <Input 
-                      name="password" 
-                      label="Mật khẩu" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      required 
-                      className="rounded-2xl border-slate-200 focus:border-indigo-500 h-13 transition-all" 
+                    <Input
+                      name="password"
+                      label="Mật khẩu"
+                      type="password"
+                      placeholder="••••••••"
+                      required
+                      className="rounded-2xl border-slate-200 focus:border-indigo-500 h-13 transition-all"
                     />
                     <div className="flex justify-end mt-1.5">
                       <button type="button" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Quên mật khẩu?</button>
@@ -124,20 +125,29 @@ export const LoginPage: React.FC = () => {
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
-                  isLoading={isLoading} 
+                <Button
+                  type="submit"
+                  isLoading={isLoading}
                   className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-indigo-100 transition-all hover:translate-y-[-2px] active:scale-[0.98]"
                 >
                   Đăng nhập ngay
                 </Button>
               </form>
-              
+
               <div className="text-center pt-2">
                 <p className="text-sm text-slate-500 font-medium">
                   Chưa có tài khoản? <Link to={ROUTES.PUBLIC.REGISTER} className="font-extrabold text-indigo-600 hover:text-indigo-700 underline underline-offset-4 decoration-2">Tham gia miễn phí</Link>
                 </p>
               </div>
+
+              {/* Debug Info Section - Helpful for troubleshooting production redirect issues */}
+              {(new URLSearchParams(location.search).has('token') || new URLSearchParams(location.search).has('error')) && (
+                <div className="mt-8 p-4 bg-slate-100 rounded-2xl text-[10px] font-mono text-slate-500 break-all border border-slate-200">
+                  <p className="font-bold mb-1 uppercase tracking-tighter opacity-50">Debug Session Info:</p>
+                  <p>URL: {window.location.href.split('?')[0]}</p>
+                  <p>Params: {location.search || 'None'}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

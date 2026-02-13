@@ -57,9 +57,13 @@ class EduNexiaSettings(BaseSettings):
                 values["FILE_EXTENSIONS"] = [i.strip() for i in raw_ext.split(",") if i.strip()]
 
         # Force load critical security & OAuth variables for Vercel compatibility
-        for key in ["SECRET_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "FRONTEND_URL"]:
+        for key in ["SECRET_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "FRONTEND_URL", "DATABASE_URL", "ALLOWED_ORIGINS"]:
             env_val = os.environ.get(key)
             if env_val:
+                # Normalize DATABASE_URL if it's the one we're loading
+                if key == "DATABASE_URL":
+                    if env_val.startswith("postgres://"):
+                        env_val = env_val.replace("postgres://", "postgresql://", 1)
                 values[key] = env_val
 
         return values

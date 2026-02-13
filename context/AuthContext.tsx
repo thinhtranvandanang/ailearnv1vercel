@@ -40,7 +40,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return savedUser ? JSON.parse(savedUser) : null;
     } catch { return null; }
   });
-  const [token, setToken] = useState<string | null>(getSafeStorage('edunexia_token'));
+  const [token, setToken] = useState<string | null>(() => {
+    // 1. Check URL for token (priority for Google Redirect)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      setSafeStorage('edunexia_token', urlToken);
+      return urlToken;
+    }
+    // 2. Fallback to localStorage
+    return getSafeStorage('edunexia_token');
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchProfile = useCallback(async () => {
@@ -111,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.removeItem('edunexia_token');
       localStorage.removeItem('edunexia_user');
-    } catch {}
+    } catch { }
   };
 
   return (
