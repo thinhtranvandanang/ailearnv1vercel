@@ -35,12 +35,42 @@ def register(user_in: UserCreate, db: Session = Depends(deps.get_db)):
 def get_me(current_user: User = Depends(deps.get_current_user)):
     return APIResponse.success(data=current_user)
 
+def get_dynamic_config(request: Request):
+    """Tính toán URL linh hoạt dựa trên request thực tế để hỗ trợ Production/Local."""
+    # Ưu tiên x-forwarded-proto cho môi trường có proxy như Vercel
+    is_localhost = "localhost" in request.url.netloc
+    
+    # Ép buộc HTTPS trên Production (không phải localhost) để tránh mất token do redirect HTTP -> HTTPS
+    if is_localhost:
+        protocol = request.url.scheme
+    else:
+        # Vercel luôn hỗ trợ HTTPS, x-forwarded-proto là đáng tin cậy nhất
+        protocol = request.headers.get("x-forwarded-proto") or "https"
+    
+    base_url = f"{protocol}://{request.url.netloc}"
+    
+    # 1. Frontend URL
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
+    if "localhost" in frontend_url or not frontend_url:
+        frontend_url = base_url
+
+    # 2. Google Redirect URI
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    if not redirect_uri or "localhost" in redirect_uri:
+        # Đường dẫn callback định nghĩa qua api_router /auth/google/callback
+        # api_router prefix = /api/v1 (settings.API_V1_STR)
+        redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
+        
+    return frontend_url, redirect_uri
+
 @google_router.get("/google/login")
-def google_login():
+def google_login(request: Request):
+    _, redirect_uri = get_dynamic_config(request)
+    
     base_url = "https://accounts.google.com/o/oauth2/v2/auth"
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
@@ -51,20 +81,11 @@ def google_login():
 
 @google_router.get("/google/callback")
 async def google_callback(request: Request, code: str, error: str | None = None):
-    # Detect the correct frontend URL
-    # If settings.FRONTEND_URL is localhost, use the current request host (for Vercel/Production)
-    current_setting = settings.FRONTEND_URL.rstrip("/")
-    if "localhost" in current_setting or not current_setting:
-        # On Vercel, the frontend and backend are usually on the same domain
-        protocol = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
-        frontend_url = f"{protocol}://{request.url.netloc}"
-    else:
-        frontend_url = current_setting
+    frontend_url, redirect_uri = get_dynamic_config(request)
     
     if error:
-
         logger.error(f"Google OAuth Provider Error: {error}")
-        return RedirectResponse(f"{frontend_url}/login?error=access_denied")
+        return RedirectResponse(f"{frontend_url}/login?error=access_denied&details={error}")
 
     if not code:
         return RedirectResponse(f"{frontend_url}/login?error=missing_code")
@@ -78,14 +99,15 @@ async def google_callback(request: Request, code: str, error: str | None = None)
                     "code": code,
                     "client_id": settings.GOOGLE_CLIENT_ID,
                     "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                    "redirect_uri": redirect_uri,
                     "grant_type": "authorization_code",
                 }
             )
             
             if token_resp.status_code != 200:
-                logger.error(f"Google Token Exchange Failed: {token_resp.text}")
-                return RedirectResponse(f"{frontend_url}/login?error=token_failed")
+                err_text = token_resp.text
+                logger.error(f"Google Token Exchange Failed (Redirect URI used: {redirect_uri}): {err_text}")
+                return RedirectResponse(f"{frontend_url}/login?error=token_failed&status={token_resp.status_code}")
             
             token_data = token_resp.json()
             access_token = token_data.get("access_token")
@@ -110,7 +132,6 @@ async def google_callback(request: Request, code: str, error: str | None = None)
                 return RedirectResponse(f"{frontend_url}/login?error=email_missing")
 
             # 3. Tạo một Database Session mới ngay sau khi thực hiện các lệnh await
-            # Điều này ngăn lỗi kết nối bị hết hạn hoặc không tồn tại do thời gian chờ HTTP.
             db = SessionLocal()
             try:
                 user = auth_service.get_or_create_google_user(
@@ -126,10 +147,10 @@ async def google_callback(request: Request, code: str, error: str | None = None)
             except Exception as db_e:
                 logger.exception(f"Database error during Google callback for {email}")
                 db.rollback()
-                return RedirectResponse(f"{frontend_url}/login?error=callback_failed")
+                return RedirectResponse(f"{frontend_url}/login?error=callback_failed&details=db_error")
             finally:
                 db.close()
 
         except Exception as e:
             logger.exception("Unexpected exception in Google callback flow")
-            return RedirectResponse(f"{frontend_url}/login?error=callback_failed")
+            return RedirectResponse(f"{frontend_url}/login?error=callback_failed&details=exception")

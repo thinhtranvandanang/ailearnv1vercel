@@ -45,7 +45,7 @@ class EduNexiaSettings(BaseSettings):
             else:
                  values["CORS_ORIGINS"] = [i.strip() for i in raw_cors.split(",") if i.strip()]
         
-        # Manual load ALLOWED_FILE_EXTENSIONS
+        # Manual load FILE_EXTENSIONS
         raw_ext = os.environ.get("ALLOWED_FILE_EXTENSIONS")
         if raw_ext:
             if raw_ext.startswith("["):
@@ -55,6 +55,12 @@ class EduNexiaSettings(BaseSettings):
                     values["FILE_EXTENSIONS"] = [i.strip() for i in raw_ext.split(",") if i.strip()]
             else:
                 values["FILE_EXTENSIONS"] = [i.strip() for i in raw_ext.split(",") if i.strip()]
+
+        # Force load critical security & OAuth variables for Vercel compatibility
+        for key in ["SECRET_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "FRONTEND_URL"]:
+            env_val = os.environ.get(key)
+            if env_val:
+                values[key] = env_val
 
         return values
     
