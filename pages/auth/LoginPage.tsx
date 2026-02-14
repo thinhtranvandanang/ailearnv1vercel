@@ -6,7 +6,7 @@ import { Card, Button, Input, LoadingOverlay } from '../../components/common/UI.
 import { ROUTES } from '../../constants/routes.ts';
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton.tsx';
 
-const VERSION = "v1.5.1-PROD-AUTH-FIX";
+const VERSION = "v1.5.2-CONSOLIDATED-FIX";
 
 export const LoginPage: React.FC = () => {
   const { login, isLoading, setTokenManually } = useAuth();

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, tests, submit, results, history
+from app.api.v1.endpoints import auth, auth_google, tests, submit, results, history
 
 api_router = APIRouter()
 
@@ -7,7 +7,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth/student", tags=["Authentication"])
 
 # Google OAuth: /api/v1/auth/google/login và /api/v1/auth/google/callback
-api_router.include_router(auth.google_router, prefix="/auth", tags=["Google OAuth"])
+api_router.include_router(auth_google.router, prefix="/auth", tags=["Google OAuth"])
 
 api_router.include_router(tests.router, prefix="/practice-tests", tags=["Practice Tests"])
 api_router.include_router(submit.router, prefix="/practice-tests", tags=["Submission"])
