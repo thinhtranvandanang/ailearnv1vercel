@@ -42,7 +42,7 @@ async def google_login():
             detail="Google OAuth chưa được cấu hình. Thêm GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET vào .env",
         )
     # Callback URL - backend nhận code từ Google
-    redirect_uri = f"http://localhost:8000/api/v1/auth/google/callback"
+    redirect_uri = settings.GOOGLE_REDIRECT_URI or "http://localhost:8000/api/v1/auth/google/callback"
     url = get_google_login_url(redirect_uri)
     return RedirectResponse(url=url)
 
@@ -65,7 +65,7 @@ async def google_callback(
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=501, detail="Google OAuth chưa được cấu hình")
 
-    redirect_uri = "http://localhost:8000/api/v1/auth/google/callback"
+    redirect_uri = settings.GOOGLE_REDIRECT_URI or "http://localhost:8000/api/v1/auth/google/callback"
     frontend_url = settings.FRONTEND_URL.rstrip("/")
 
     try:
