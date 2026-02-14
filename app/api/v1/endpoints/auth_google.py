@@ -128,7 +128,7 @@ async def google_callback(
             )
             jwt_token = create_access_token(subject=user.id)
             return RedirectResponse(
-                url=f"{frontend_url}/login?token={jwt_token}",
+                url=f"{frontend_url}/auth/callback?token={jwt_token}",
                 status_code=302,
             )
         finally:
