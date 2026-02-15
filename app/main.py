@@ -63,14 +63,15 @@ def debug_auth():
         db_error = str(e)
 
     return {
-        "version": "v1.5.2-CONSOLIDATED-FIX",
+        "version": "v1.5.2-DB-DEBUG-FORCE",
         "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
         "google_redirect_uri": settings.GOOGLE_REDIRECT_URI,
         "frontend_url": settings.FRONTEND_URL,
         "api_v1_str": settings.API_V1_STR,
         "environment": os.environ.get("ENVIRONMENT", "not set"),
         "db_status": db_status,
-        "db_error": db_error
+        "db_error": db_error,
+        "db_url_redacted": settings.DATABASE_URL.split("@")[1] if "@" in settings.DATABASE_URL else "invalid"
     }
 
 @app.get("/api-test")
