@@ -5,7 +5,7 @@ import os
 # Ultra-early logging for Vercel troubleshooting
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger("vercel_main")
-logger.info("Vercel Serverless Function (main_api.py) is starting...")
+logger.info("Vercel Serverless Function (index.py) is starting at 06:00...")
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
