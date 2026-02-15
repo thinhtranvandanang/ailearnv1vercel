@@ -57,6 +57,10 @@ def debug_auth():
         "environment": os.environ.get("ENVIRONMENT", "not set")
     }
 
+@app.get("/api-test")
+def api_test_root():
+    return {"status": "ok", "message": "API Root Test Successful", "version": "v1.5.2"}
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
