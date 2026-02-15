@@ -18,10 +18,21 @@ class EduNexiaSettings(BaseSettings):
     @classmethod
     def assemble_db_url(cls, v: str) -> str:
         if isinstance(v, str):
+            # Normalize prefix
             if v.startswith("postgres://"):
-                return v.replace("postgres://", "postgresql://", 1)
+                v = v.replace("postgres://", "postgresql://", 1)
             elif v.startswith("postgresql+psycopg://"):
-                return v.replace("postgresql+psycopg://", "postgresql://", 1)
+                v = v.replace("postgresql+psycopg://", "postgresql://", 1)
+            
+            # Remove incompatible pgbouncer parameter which crashes psycopg3
+            if "pgbouncer=true" in v:
+                if "?" in v:
+                    base, params = v.split("?", 1)
+                    # Filter out pgbouncer parameter
+                    new_params = "&".join([p for p in params.split("&") if not p.startswith("pgbouncer=")])
+                    v = f"{base}?{new_params}" if new_params else base
+                
+            return v.rstrip("&")
         return v
 
     # CORS
