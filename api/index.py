@@ -11,6 +11,12 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 import pkg_resources
 
+# Add project root to sys.path so app module is found
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 # This is the entry point for Vercel Serverless Functions
 try:
     logger.info("Attempting to import app.main...")
