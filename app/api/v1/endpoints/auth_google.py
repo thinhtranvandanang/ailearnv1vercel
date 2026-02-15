@@ -172,10 +172,17 @@ async def google_callback(
                 status_code=302,
             )
         except Exception as db_e:
+            err_msg = str(db_e)
             logger.exception(f"Database error during Google callback for {email}")
             db.rollback()
+            # Trả thêm chi tiết lỗi để chẩn đoán trên Frontend
+            params = {
+                "error": "callback_failed",
+                "details": "db_error",
+                "message": err_msg[:200]
+            }
             return RedirectResponse(
-                url=f"{frontend_url}/auth/callback?error=callback_failed&details=db_error",
+                url=f"{frontend_url}/auth/callback?{urlencode(params)}",
                 status_code=302,
             )
         finally:

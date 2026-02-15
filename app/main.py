@@ -47,14 +47,30 @@ async def edunexia_exception_handler(request: Request, exc: EduNexiaException):
 @app.get("/api/debug-auth")
 def debug_auth():
     from app.core.config import settings
+    from app.core.database import SessionLocal
+    from sqlalchemy import text
     import os
+    
+    db_status = "unknown"
+    db_error = None
+    try:
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db_status = "connected"
+        db.close()
+    except Exception as e:
+        db_status = "failed"
+        db_error = str(e)
+
     return {
         "version": "v1.5.2-CONSOLIDATED-FIX",
         "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
         "google_redirect_uri": settings.GOOGLE_REDIRECT_URI,
         "frontend_url": settings.FRONTEND_URL,
         "api_v1_str": settings.API_V1_STR,
-        "environment": os.environ.get("ENVIRONMENT", "not set")
+        "environment": os.environ.get("ENVIRONMENT", "not set"),
+        "db_status": db_status,
+        "db_error": db_error
     }
 
 @app.get("/api-test")
