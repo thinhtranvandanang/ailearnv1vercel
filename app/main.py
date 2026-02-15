@@ -44,6 +44,19 @@ async def edunexia_exception_handler(request: Request, exc: EduNexiaException):
     )
 
 # Routers
+@app.get("/api/debug-auth")
+def debug_auth():
+    from app.core.config import settings
+    import os
+    return {
+        "version": "v1.5.2-CONSOLIDATED-FIX",
+        "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
+        "google_redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "frontend_url": settings.FRONTEND_URL,
+        "api_v1_str": settings.API_V1_STR,
+        "environment": os.environ.get("ENVIRONMENT", "not set")
+    }
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
