@@ -23,6 +23,18 @@ except Exception as e:
     
     installed_packages = [f"{d.project_name}=={d.version}" for d in pkg_resources.working_set]
     
+    @app.get("/debug-auth")
+    def debug_auth():
+        from app.core.config import settings
+        return {
+            "version": "v1.5.2-CONSOLIDATED-FIX",
+            "google_client_id_set": bool(settings.GOOGLE_CLIENT_ID),
+            "google_redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "frontend_url": settings.FRONTEND_URL,
+            "api_v1_str": settings.API_V1_STR,
+            "environment": os.environ.get("ENVIRONMENT", "not set")
+        }
+
     @app.get("/{full_path:path}")
     def catch_all(full_path: str):
         return JSONResponse({
