@@ -6,7 +6,6 @@ import { Card, Button, Input, LoadingOverlay } from '../../components/common/UI.
 import { ROUTES } from '../../constants/routes.ts';
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton.tsx';
 
-const VERSION = "v1.5.2-CONSOLIDATED-FIX";
 
 export const LoginPage: React.FC = () => {
   const { login, isLoading, setTokenManually } = useAuth();
@@ -148,7 +147,6 @@ export const LoginPage: React.FC = () => {
                 <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-[10px] font-mono text-indigo-300 break-all border border-slate-800 shadow-inner">
                   <div className="flex justify-between items-center mb-2">
                     <p className="font-black uppercase tracking-widest opacity-50">Diagnostic Console</p>
-                    <span className="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-bold">{VERSION}</span>
                   </div>
                   <div className="space-y-1">
                     <p><span className="text-slate-500">URL:</span> {window.location.protocol}//{window.location.host}{window.location.pathname}</p>
@@ -160,7 +158,7 @@ export const LoginPage: React.FC = () => {
               )}
 
               <div className="text-center pt-4 opacity-30 hover:opacity-100 transition-opacity">
-                <span className="text-[9px] font-bold text-slate-400 tracking-widest">{VERSION} BUILD SUCCESS</span>
+                <span className="text-[9px] font-bold text-slate-400 tracking-widest">BUILD SUCCESS</span>
               </div>
             </div>
           )}
